@@ -128,10 +128,10 @@ namespace {
         char        *data;
     };
 
-    class NFCReadWorker : public Nan::AsyncProgressWorker {
+    class NFCReadWorker : public Nan::AsyncProgressWorkerBase<char> {
       public:
         NFCReadWorker(NFC *baton, Local<Object>self)
-            : Nan::AsyncProgressWorker(new Nan::Callback(self.As<Function>())), baton(baton) {
+            : Nan::AsyncProgressWorkerBase<char>(new Nan::Callback(self.As<Function>())), baton(baton) {
                 SaveToPersistent("self", self);
                 baton->run = true;
         }
@@ -150,14 +150,14 @@ namespace {
         void HandleErrorCallback() {
             Local<Value> argv[2];
             argv[0] = Nan::New("error").ToLocalChecked();
-            argv[1] = Nan::Error(AsyncProgressWorker::ErrorMessage());
+            argv[1] = Nan::Error(AsyncProgressWorkerBase<char>::ErrorMessage());
 
             Local<Object> self = GetFromPersistent("self").As<Object>();
             Nan::MakeCallback(self, "emit", 2, argv);
             HandleOKCallback();
         }
 
-        void Execute(const AsyncProgressWorker::ExecutionProgress& progress) {
+        void Execute(const AsyncProgressWorkerBase<char>::ExecutionProgress& progress) {
             while(baton->run && nfc_initiator_select_passive_target(baton->pnd, nmMifare, NULL, 0, &baton->nt) > 0) {
                 baton->claimed = true;
                 tag = new NFCCard();
